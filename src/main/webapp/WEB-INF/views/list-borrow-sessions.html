@@ -7,8 +7,15 @@
           integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
 </head>
 <body>
+<div class="form-search container d-fex">
+    <form method="get">
+        <input type="text" name="code" placeholder="Enter borrow code ..."/>
+        <button class="btn btn-primary">Search</button>
+    </form>
+</div>
 <div class="container">
-    <a th:href="@{/library}">Back</a>
+    <a th:href="@{/library}" class="btn btn-outline-primary">Back to Home page</a>
+    <h1>All borrowed books</h1>
     <table class="table">
         <thead>
         <tr>
@@ -23,9 +30,15 @@
             <td th:text="${borrowSession.id}"></td>
             <td th:text="${borrowSession.book?.name}"></td>
             <td th:text="${borrowSession.code}"></td>
+            <td><a th:href="@{/library/return/__${borrowSession.id}__}">Return this book</a></td>
         </tr>
         </tbody>
     </table>
+</div>
+<div class="container">
+    <a th:href="@{'/library/return'(page=${borrowSessions.number - 1})}" th:if="${borrowSessions.hasPrevious()}">Previous</a>
+    <span th:text="${borrowSessions.number + 1}"></span>/<span th:text="${borrowSessions.totalPages}"></span>
+    <a th:href="@{'/library/return'(page=${borrowSessions.number + 1})}" th:if="${borrowSessions.hasNext()}">Next</a>
 </div>
 </body>
 </html>

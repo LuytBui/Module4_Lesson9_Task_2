@@ -24,7 +24,7 @@ public class LibraryController {
     IBorrowBookSessionRepository borrowBookSessionRepository;
 
     @ExceptionHandler(BookOutOfStockException.class)
-    public ModelAndView redirectToErrorPageOutOfStock(Exception e){
+    public ModelAndView redirectToErrorPageOutOfStock(Exception e) {
         System.out.println(e.getMessage());
         return new ModelAndView("exception", "exception", e);
     }
@@ -36,7 +36,7 @@ public class LibraryController {
     }
 
     @GetMapping("/borrow/{id}")
-    public ModelAndView showBorrowPage(@PathVariable Long id){
+    public ModelAndView showBorrowPage(@PathVariable Long id) {
         Optional<Book> book = bookRepository.findById(id);
 
         if (!book.isPresent())
@@ -54,7 +54,7 @@ public class LibraryController {
         if (book.get().getQuantity() <= 0)
             throw new BookOutOfStockException();
 
-        String code = "" + (int) Math.floor(Math.random()* 100000);
+        String code = "" + (int) Math.floor(Math.random() * 100000);
         BorrowBookSession borrowBookSession = new BorrowBookSession();
         borrowBookSession.setBook(book.get());
         borrowBookSession.setCode(code);
@@ -63,8 +63,56 @@ public class LibraryController {
         book.get().setQuantity(book.get().getQuantity() - 1);
         bookRepository.save(book.get());
 
-        String message = "Borrow success: "+ book.get().getName() + " | borrow code = "+ code + " (IMPORTANT - use this code when returning)";
+        String message = "Borrow success: " + book.get().getName() + " | borrow code = " + code + " (IMPORTANT - use this code when returning)";
         ModelAndView modelAndView = new ModelAndView("borrow");
+        modelAndView.addObject("message", message);
+        return modelAndView;
+    }
+
+    @GetMapping("/return")
+    public ModelAndView showReturnBookPage(@RequestParam(name = "code") Optional<String> code, Pageable pageable) {
+        ModelAndView modelAndView = new ModelAndView("list-borrow-sessions");
+        Page<BorrowBookSession> borrowBookSessions;
+        if (!code.isPresent()) {
+            // No "code" in Reques Params: show all
+            borrowBookSessions = borrowBookSessionRepository.findAll(pageable);
+            modelAndView.addObject("borrowSessions", borrowBookSessions);
+        } else {
+            // "code" is present
+            borrowBookSessions = borrowBookSessionRepository.findAllByCode(code.get(), pageable);
+            modelAndView.addObject("borrowSessions", borrowBookSessions);
+        }
+        return modelAndView;
+    }
+
+    @GetMapping("/return/{id}")
+    public ModelAndView showReturnBookPage(@PathVariable Long id){
+        Optional<BorrowBookSession> borrowBookSession = borrowBookSessionRepository.findById(id);
+
+        if (!borrowBookSession.isPresent())
+            return new ModelAndView("error-404");
+
+        Book book = borrowBookSession.get().getBook();
+        ModelAndView modelAndView = new ModelAndView("return");
+        modelAndView.addObject("book", book);
+        modelAndView.addObject("borrowSession", borrowBookSession.get());
+        return modelAndView;
+    }
+
+    @PostMapping("/return/{id}")
+    public ModelAndView returnBook(@PathVariable Long id){
+        Optional<BorrowBookSession> borrowBookSession = borrowBookSessionRepository.findById(id);
+
+        if (!borrowBookSession.isPresent())
+            return new ModelAndView("error-404");
+
+        Book book = borrowBookSession.get().getBook();
+        book.setQuantity(book.getQuantity() + 1);
+        borrowBookSessionRepository.delete(borrowBookSession.get());
+        bookRepository.save(book);
+
+        String message = "Return success: Book name = " + book.getName() + " | borrow code = " + borrowBookSession.get().getCode() + ".";
+        ModelAndView modelAndView = new ModelAndView("return");
         modelAndView.addObject("message", message);
         return modelAndView;
     }
