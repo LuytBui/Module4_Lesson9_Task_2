@@ -1,6 +1,7 @@
 package com.codegym.controller;
 
 import com.codegym.exception.BookOutOfStockException;
+import com.codegym.exception.BorrowSessionNotExistException;
 import com.codegym.model.Book;
 import com.codegym.model.BorrowBookSession;
 import com.codegym.repository.IBookRepository;
@@ -25,6 +26,12 @@ public class LibraryController {
 
     @ExceptionHandler(BookOutOfStockException.class)
     public ModelAndView redirectToErrorPageOutOfStock(Exception e) {
+        System.out.println(e.getMessage());
+        return new ModelAndView("exception", "exception", e);
+    }
+
+    @ExceptionHandler(BorrowSessionNotExistException.class)
+    public ModelAndView redirectToErrorPageSessionNotExist(Exception e) {
         System.out.println(e.getMessage());
         return new ModelAndView("exception", "exception", e);
     }
@@ -86,11 +93,11 @@ public class LibraryController {
     }
 
     @GetMapping("/return/{id}")
-    public ModelAndView showReturnBookPage(@PathVariable Long id){
+    public ModelAndView showReturnBookPage(@PathVariable Long id) throws BorrowSessionNotExistException {
         Optional<BorrowBookSession> borrowBookSession = borrowBookSessionRepository.findById(id);
 
         if (!borrowBookSession.isPresent())
-            return new ModelAndView("error-404");
+            throw new BorrowSessionNotExistException();
 
         Book book = borrowBookSession.get().getBook();
         ModelAndView modelAndView = new ModelAndView("return");
@@ -100,11 +107,11 @@ public class LibraryController {
     }
 
     @PostMapping("/return/{id}")
-    public ModelAndView returnBook(@PathVariable Long id){
+    public ModelAndView returnBook(@PathVariable Long id) throws BorrowSessionNotExistException {
         Optional<BorrowBookSession> borrowBookSession = borrowBookSessionRepository.findById(id);
 
         if (!borrowBookSession.isPresent())
-            return new ModelAndView("error-404");
+            throw new BorrowSessionNotExistException();
 
         Book book = borrowBookSession.get().getBook();
         book.setQuantity(book.getQuantity() + 1);
